@@ -38,3 +38,21 @@ FROM customers_cleaned AS t1
 JOIN addresses AS t2
 ON t1.AddressID = t2.AddressID
 GROUP BY t2.Country, t2.City;
+
+-- • How many customers have one active account versus multiple active accounts?
+
+WITH cte AS
+(
+	SELECT t1.CustomerID, COUNT(DISTINCT AccountID) AS account_count
+	FROM customers_cleaned AS t1
+	INNER JOIN accounts AS t2
+	ON t1.CustomerID = t2.CustomerID
+	INNER JOIN account_statuses AS t3
+	ON t2.AccountStatusID = t3.AccountStatusID
+    WHERE t3.StatusName = 'Active'
+	GROUP BY t1.CustomerID
+)
+
+SELECT CASE WHEN account_count = 1 THEN 'one' ELSE 'more_than_one' END AS account_cnt, COUNT(*) AS customer_count
+FROM cte
+GROUP BY account_cnt;
