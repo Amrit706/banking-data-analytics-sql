@@ -65,3 +65,14 @@ INNER JOIN accounts AS t2
 ON t1.CustomerID = t2.CustomerID
 GROUP BY CustomerID, customer_name
 ORDER BY total_account_balance DESC LIMIT 1;
+
+-- • Which customers generate the highest transaction activity?
+
+SELECT t1.CustomerID, CONCAT_WS(" ",t1.FirstName, t1.LastName) AS customer_name, COUNT(t3.TransactionID) AS transaction_activity_cnt
+FROM customers_cleaned AS t1
+INNER JOIN accounts AS t2
+ON t1.CustomerID = t2.CustomerID
+INNER JOIN transactions AS t3
+ON t2.AccountID = t3.AccountOriginID
+GROUP BY t1.CustomerID, customer_name
+ORDER BY transaction_activity_cnt DESC LIMIT 1;
