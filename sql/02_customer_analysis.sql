@@ -59,12 +59,18 @@ GROUP BY account_cnt;
 
 -- • Which customers have the highest total account balance?
 
-SELECT t1.CustomerID, CONCAT_WS(" ",t1.FirstName, t1.LastName) AS customer_name, ROUND(SUM(t2.Balance),2) AS total_account_balance
-FROM customers_cleaned AS t1
-INNER JOIN accounts AS t2
-ON t1.CustomerID = t2.CustomerID
-GROUP BY CustomerID, customer_name
-ORDER BY total_account_balance DESC LIMIT 1;
+WITH cte AS
+(
+	SELECT t1.CustomerID, CONCAT_WS(" ",t1.FirstName, t1.LastName) AS customer_name, ROUND(SUM(t2.Balance),2) AS total_account_balance
+	FROM customers_cleaned AS t1
+	INNER JOIN accounts AS t2
+	ON t1.CustomerID = t2.CustomerID
+	GROUP BY CustomerID, customer_name
+	ORDER BY total_account_balance DESC LIMIT 1
+)
+
+SELECT customer_name 
+FROM cte;
 
 -- • Which customers generate the highest transaction activity?
 
