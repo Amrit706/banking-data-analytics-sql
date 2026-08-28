@@ -88,3 +88,37 @@ AS (
 
 SELECT customer_name 
 FROM cte;
+
+-- • What percentage of customers fall into low, moderate, and high activity groups based on transaction frequency?
+
+WITH cte AS
+(
+	SELECT t1.CustomerID, CONCAT_WS(" ",t1.FirstName, t1.LastName) AS customer_name, COUNT(t3.TransactionID) AS transaction_activity_cnt
+	FROM customers_cleaned AS t1
+	INNER JOIN accounts AS t2
+	ON t1.CustomerID = t2.CustomerID
+	INNER JOIN transactions AS t3
+	ON t2.AccountID = t3.AccountOriginID
+	GROUP BY t1.CustomerID, customer_name
+),
+
+cte2 AS
+(
+	SELECT *, 
+	NTILE(4) OVER(ORDER BY transaction_activity_cnt DESC) AS frequency_bucket
+	FROM cte
+),
+
+cte3 AS 
+(
+	SELECT CASE WHEN frequency_bucket = 1 THEN 'high'
+			WHEN frequency_bucket IN (2,3) THEN 'moderate'
+			WHEN frequency_bucket = 4 THEN 'low'
+			END AS customer_level,
+			COUNT(*) AS cnt
+	FROM cte2
+	GROUP BY customer_level
+)
+
+SELECT customer_level, ROUND(((cnt / SUM(cnt) OVER() ) * 100),2) AS percentage
+FROM cte3;
