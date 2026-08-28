@@ -122,3 +122,21 @@ cte3 AS
 
 SELECT customer_level, ROUND(((cnt / SUM(cnt) OVER() ) * 100),2) AS percentage
 FROM cte3;
+
+-- • Which customers have not performed transactions for a long period?
+
+WITH cte AS
+(
+	SELECT t1.CustomerID, CONCAT_WS(" ",t1.FirstName, t1.LastName) AS customer_name, t3.TransactionDate
+	FROM customers_cleaned AS t1
+	INNER JOIN accounts AS t2
+	ON t1.CustomerID = t2.CustomerID
+	INNER JOIN transactions AS t3
+	ON t2.AccountID = t3.AccountOriginID
+)
+
+SELECT t.customer_name
+FROM (SELECT CustomerID, customer_name, MAX(CAST(TransactionDate AS DATE)) AS trns_date
+		FROM cte
+		GROUP BY CustomerID, customer_name
+		ORDER BY trns_date ASC LIMIT 1) AS t;
