@@ -140,3 +140,25 @@ FROM (SELECT CustomerID, customer_name, MAX(CAST(TransactionDate AS DATE)) AS tr
 		FROM cte
 		GROUP BY CustomerID, customer_name
 		ORDER BY trns_date ASC LIMIT 1) AS t;
+        
+-- • Identify customers who may be valuable but have low engagement.
+
+-- For this we will try to find the customers who have spent more money in less number of transactions
+
+WITH cte AS
+(
+	SELECT t1.CustomerID, CONCAT_WS(" ",t1.FirstName, t1.LastName) AS customer_name, 
+	COUNT(t3.TransactionID) AS trns_cnt, ROUND(SUM(t3.Amount),2) AS total_amount_spent
+	FROM customers_cleaned AS t1
+	INNER JOIN accounts AS t2
+	ON t1.CustomerID = t2.CustomerID
+	INNER JOIN transactions AS t3
+	ON t2.AccountID = t3.AccountOriginID
+	GROUP BY t1.CustomerID, customer_name
+)
+
+SELECT CustomerID, t.customer_name, t.trns_cnt, t.total_amount_spent
+FROM (SELECT *,
+	DENSE_RANK() OVER(ORDER BY trns_cnt ASC, total_amount_spent DESC) AS rnk
+	FROM cte) AS t
+WHERE t.rnk = 1;
