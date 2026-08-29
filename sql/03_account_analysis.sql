@@ -39,3 +39,14 @@ WHERE t2.StatusName = 'Active'
 GROUP BY type
 ORDER BY total_balance DESC;
 
+-- • Average balance by account type
+
+SELECT t3.TypeName AS type, ROUND(AVG(t1.Balance),2) AS avg_balance
+FROM accounts AS t1
+INNER JOIN account_statuses AS t2
+ON t1.AccountStatusID = t2.AccountStatusID
+INNER JOIN account_types AS t3
+ON t1.AccountTypeID = t3.AccountTypeID
+WHERE t2.StatusName = 'Active'
+GROUP BY type
+ORDER BY avg_balance DESC;
