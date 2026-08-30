@@ -69,3 +69,16 @@ SELECT t1.BranchName, t2.StatusName, t1.account_cnt
 FROM cte AS t1
 INNER JOIN account_statuses AS t2
 ON t1.AccountStatusID = t2.AccountStatusID;
+
+-- • Customers with multiple accounts (active, inactive, closed)
+
+SELECT t1.CustomerID, CONCAT_WS(" ", t1.FirstName, t1.LastName) AS customer_name, 
+		t3.StatusName AS account_status, COUNT(t2.AccountID) AS account_cnt
+FROM customers_cleaned AS t1
+INNER JOIN accounts AS t2
+	ON t1.CustomerID = t2.CustomerID
+INNER JOIN account_statuses AS t3
+	ON t2.AccountStatusID = t3.AccountStatusID
+GROUP BY t1.CustomerID, customer_name, account_status
+	HAVING account_cnt > 1
+ORDER BY account_cnt DESC;
