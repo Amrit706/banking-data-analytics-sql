@@ -50,3 +50,22 @@ ON t1.AccountTypeID = t3.AccountTypeID
 WHERE t2.StatusName = 'Active'
 GROUP BY type
 ORDER BY avg_balance DESC;
+
+-- • Branch-wise account distribution
+
+WITH cte AS
+(
+	SELECT t3.BranchID, t3.BranchName, t1.AccountStatusID, COUNT(t1.AccountID) AS account_cnt
+	FROM accounts AS t1
+	INNER JOIN customers_cleaned AS t2
+	ON t1.CustomerID = t2.CustomerID
+	INNER JOIN branches AS t3
+	ON t2.AddressID = t3.AddressID
+	GROUP BY t3.BranchID, t3.BranchName, t1.AccountStatusID
+	ORDER BY account_cnt DESC
+)
+
+SELECT t1.BranchName, t2.StatusName, t1.account_cnt
+FROM cte AS t1
+INNER JOIN account_statuses AS t2
+ON t1.AccountStatusID = t2.AccountStatusID;
