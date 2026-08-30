@@ -82,3 +82,50 @@ INNER JOIN account_statuses AS t3
 GROUP BY t1.CustomerID, customer_name, account_status
 	HAVING account_cnt > 1
 ORDER BY account_cnt DESC;
+
+-- • Accounts with unusually high or low balances
+
+WITH ordered_balances AS (
+    SELECT
+        AccountID,
+        Balance,
+        ROW_NUMBER() OVER (ORDER BY Balance) AS rn,
+        COUNT(*) OVER () AS total_rows
+    FROM accounts
+),
+
+quartiles AS (
+    SELECT
+        MAX(CASE 
+            WHEN rn = CEIL(total_rows * 0.25) 
+            THEN Balance 
+        END) AS Q1,
+        
+        MAX(CASE 
+            WHEN rn = CEIL(total_rows * 0.75) 
+            THEN Balance 
+        END) AS Q3
+    FROM ordered_balances
+),
+
+iqr_bounds AS (
+    SELECT
+        Q1,
+        Q3,
+        (Q3 - Q1) AS IQR,
+        Q1 - 1.5 * (Q3 - Q1) AS lower_bound,
+        Q3 + 1.5 * (Q3 - Q1) AS upper_bound
+    FROM quartiles
+)
+
+SELECT t1.AccountID, t1.Balance,
+	CASE WHEN t1.Balance < t2.lower_bound THEN 'unusually_low'
+		WHEN t1.Balance > t2.upper_bound THEN 'unusually_high'
+        END AS balance_category
+FROM ordered_balances AS t1
+CROSS JOIN iqr_bounds AS t2
+WHERE t1.Balance < t2.lower_bound 
+	OR t1.Balance > t2.upper_bound
+ORDER BY t1.Balance;
+
+-- Conclusion : Using the IQR method, no account balances were identified as unusually high or low.
