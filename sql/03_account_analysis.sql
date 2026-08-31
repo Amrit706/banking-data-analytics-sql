@@ -129,3 +129,67 @@ WHERE t1.Balance < t2.lower_bound
 ORDER BY t1.Balance;
 
 -- Conclusion : Using the IQR method, no account balances were identified as unusually high or low.
+
+-- • Dormant or inactive accounts
+
+-- Case 1 :- latest_trans_date IS NULL → No recorded transaction activity
+-- Case 2 :- Latest transaction is sufficiently old relative to the dataset's latest date → Dormant
+-- Case 3 :- Otherwise → Active/recently active
+
+-- Define an account as dormant if:
+    -- Its most recent transaction occurred more than 12 months before the latest transaction date in the dataset.
+    
+    
+WITH cte AS
+(
+	SELECT t1.AccountID,
+	MAX(t2.TransactionDate) AS latest_trans
+	FROM accounts AS t1
+	LEFT JOIN transactions AS t2
+		ON t1.AccountID = t2.AccountOriginID
+	INNER JOIN account_statuses AS t3
+		ON t1.AccountStatusID = t3.AccountStatusID
+	WHERE t3.StatusName = 'Active'
+	GROUP BY t1.AccountID
+	UNION ALL
+	SELECT t1.AccountID,
+	MAX(t2.TransactionDate) AS latest_trans
+	FROM accounts AS t1
+	LEFT JOIN transactions AS t2
+		ON t1.AccountID = t2.AccountDestinationID
+	INNER JOIN account_statuses AS t3
+		ON t1.AccountStatusID = t3.AccountStatusID
+	WHERE t3.StatusName = 'Active'
+	GROUP BY t1.AccountID
+),
+
+latest_activity AS
+(
+	SELECT AccountID, 
+		MAX(latest_trans) AS latest_trans_date
+	FROM cte
+	GROUP BY AccountID
+),
+
+latest_dataset_date AS
+(
+	SELECT MAX(TransactionDate) AS max_transaction_date
+	FROM transactions
+)
+
+SELECT t1.AccountID,
+	t1.latest_trans_date,
+	'Dormant' AS account_category
+FROM latest_activity AS t1
+CROSS JOIN latest_dataset_date AS t2
+WHERE t1.latest_trans_date < DATE_SUB(t2.max_transaction_date, INTERVAL 12 MONTH)
+	OR t1.latest_trans_date IS NULL
+UNION ALL
+SELECT 
+    t1.AccountID,
+    NULL AS latest_trans_date,
+    'Inactive' AS account_category
+FROM accounts AS t1
+INNER JOIN account_statuses AS t2
+    ON t1.AccountStatusID = t2.AccountStatusID
+WHERE t2.StatusName = 'Inactive';
