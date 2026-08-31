@@ -193,3 +193,31 @@ FROM accounts AS t1
 INNER JOIN account_statuses AS t2
     ON t1.AccountStatusID = t2.AccountStatusID
 WHERE t2.StatusName = 'Inactive';
+
+-- • Account types generating the highest customer activity
+
+WITH cte AS
+(
+	SELECT t2.TypeName AS account_type, COUNT(t3.TransactionID) AS activity_cnt
+	FROM accounts AS t1
+	INNER JOIN account_types AS t2
+		ON t1.AccountTypeID = t2.AccountTypeID
+	INNER JOIN transactions AS t3
+		ON t1.AccountID = t3.AccountOriginID
+	GROUP BY account_type
+	UNION ALL
+	SELECT t2.TypeName AS account_type, COUNT(t3.TransactionID) AS activity_cnt
+	FROM accounts AS t1
+	INNER JOIN account_types AS t2
+		ON t1.AccountTypeID = t2.AccountTypeID
+	INNER JOIN transactions AS t3
+		ON t1.AccountID = t3.AccountDestinationID
+	GROUP BY account_type
+	ORDER BY activity_cnt DESC
+)
+
+SELECT account_type, SUM(activity_cnt) AS total_activity_count,
+DENSE_RANK() OVER(ORDER BY SUM(activity_cnt) DESC) AS rnk
+FROM cte
+GROUP BY account_type
+ORDER BY total_activity_count DESC;
