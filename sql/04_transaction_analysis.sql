@@ -85,3 +85,51 @@ SELECT CustomerID, customer_name, COUNT(TransactionID) AS trans_counts
 FROM cte
 GROUP BY CustomerID, customer_name
 ORDER BY trans_counts DESC LIMIT 1;
+
+-- • Which customers perform the highest number of transactions?
+
+WITH cte AS
+(
+	SELECT t1.CustomerID, CONCAT_WS(" ", t1.FirstName, t1.LastName) AS customer_name, t3.TransactionID
+	FROM customers_cleaned AS t1
+	INNER JOIN accounts AS t2
+		ON t1.CustomerID = t2.CustomerID
+	INNER JOIN transactions AS t3
+		ON t2.AccountID = t3.AccountOriginID
+	UNION
+	SELECT t1.CustomerID, CONCAT_WS(" ", t1.FirstName, t1.LastName) AS customer_name, t3.TransactionID
+	FROM customers_cleaned AS t1
+	INNER JOIN accounts AS t2
+		ON t1.CustomerID = t2.CustomerID
+	INNER JOIN transactions AS t3
+		ON t2.AccountID = t3.AccountDestinationID
+)
+
+SELECT CustomerID, customer_name, COUNT(TransactionID) AS trans_counts
+FROM cte
+GROUP BY CustomerID, customer_name
+ORDER BY trans_counts DESC LIMIT 1;
+
+-- • Which customers have the highest transaction value?
+
+WITH cte AS
+(
+	SELECT t1.CustomerID, CONCAT_WS(" ", t1.FirstName, t1.LastName) AS customer_name, t3.Amount, t3.TransactionID
+	FROM customers_cleaned AS t1
+	INNER JOIN accounts AS t2
+		ON t1.CustomerID = t2.CustomerID
+	INNER JOIN transactions AS t3
+		ON t2.AccountID = t3.AccountOriginID
+	UNION
+	SELECT t1.CustomerID, CONCAT_WS(" ", t1.FirstName, t1.LastName) AS customer_name, t3.Amount, t3.TransactionID
+	FROM customers_cleaned AS t1
+	INNER JOIN accounts AS t2
+		ON t1.CustomerID = t2.CustomerID
+	INNER JOIN transactions AS t3
+		ON t2.AccountID = t3.AccountDestinationID
+)
+
+SELECT CustomerID, customer_name, ROUND(SUM(Amount),2) AS total_amount
+FROM cte
+GROUP BY CustomerID, customer_name
+ORDER BY total_amount DESC LIMIT 1;
