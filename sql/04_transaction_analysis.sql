@@ -133,3 +133,12 @@ SELECT CustomerID, customer_name, ROUND(SUM(Amount),2) AS total_amount
 FROM cte
 GROUP BY CustomerID, customer_name
 ORDER BY total_amount DESC LIMIT 1;
+
+-- • How are transactions distributed across the available transaction types?
+
+SELECT t2.TypeName AS trans_type, COUNT(t1.TransactionID) AS trans_count
+FROM transactions AS t1
+INNER JOIN transaction_types AS t2
+	ON t1.TransactionTypeID = t2.TransactionTypeID
+GROUP BY t2.TypeName
+ORDER BY trans_count DESC;
