@@ -38,3 +38,8 @@ WITH cte AS
 
 SELECT month_name AS months, trans_count
 FROM cte;
+
+-- • What is the average transaction value?
+
+SELECT ROUND(AVG(Amount),2) AS avg_amount
+FROM transactions;
