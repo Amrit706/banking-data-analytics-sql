@@ -43,3 +43,12 @@ FROM cte;
 
 SELECT ROUND(AVG(Amount),2) AS avg_amount
 FROM transactions;
+
+-- • Which branches have the highest transaction activity?
+
+SELECT t2.BranchName AS branch, COUNT(t1.TransactionID) AS trans_counts
+FROM transactions AS t1 
+INNER JOIN branches AS t2
+	ON t1.BranchID = t2.BranchID
+GROUP BY t2.BranchName
+ORDER BY trans_counts DESC LIMIT 1;
