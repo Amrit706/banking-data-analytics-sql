@@ -142,3 +142,34 @@ INNER JOIN transaction_types AS t2
 	ON t1.TransactionTypeID = t2.TransactionTypeID
 GROUP BY t2.TypeName
 ORDER BY trans_count DESC;
+
+-- • Identify unusually large transactions.
+
+-- Threshold = AVG + 2 × STDDEV i.e. flag will be the amount above of that
+
+WITH cte AS
+(
+	SELECT t1.AccountID, t2.TransactionID , t2.Amount
+	FROM accounts AS t1
+	INNER JOIN transactions AS t2
+		ON t1.AccountID = t2.AccountOriginID
+	UNION
+	SELECT t1.AccountID, t2.TransactionID , t2.Amount
+	FROM accounts AS t1
+	INNER JOIN transactions AS t2
+		ON t1.AccountID = t2.AccountDestinationID
+),
+
+cte2 AS 
+(
+	SELECT AccountID, ROUND(AVG(Amount),2) AS avg_amount, ROUND(STDDEV(Amount),2) AS std_amount
+	FROM cte
+	GROUP BY AccountID
+)
+
+SELECT t1.AccountID, t1.TransactionID, t1.Amount, t2.avg_amount, t2.std_amount, 
+	ROUND(t2.avg_amount + 2 * t2.std_amount,2) AS unusual_threshold
+FROM cte AS t1
+INNER JOIN cte2 AS t2
+	ON t1.AccountID = t2.AccountID
+WHERE t1.Amount > t2.avg_amount + 2 * t2.std_amount;
