@@ -24,3 +24,17 @@ INNER JOIN transaction_types AS t2
 	ON t1.TransactionTypeID = t2.TransactionTypeID
 GROUP BY t2.TypeName
 ORDER BY trans_count DESC LIMIT 1;
+
+-- • What is the monthly transaction trend?
+
+WITH cte AS
+(
+	SELECT CONCAT_WS(" ",MONTHNAME(TransactionDate) , YEAR(TransactionDate)) AS month_name, 
+		YEAR(TransactionDate) AS years, MONTH(TransactionDate) AS months, COUNT(TransactionID) AS trans_count
+	FROM transactions
+	GROUP BY month_name, months, years
+	ORDER BY YEAR(TransactionDate) ASC, MONTH(TransactionDate) ASC
+)
+
+SELECT month_name AS months, trans_count
+FROM cte;
