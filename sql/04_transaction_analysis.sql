@@ -173,3 +173,66 @@ FROM cte AS t1
 INNER JOIN cte2 AS t2
 	ON t1.AccountID = t2.AccountID
 WHERE t1.Amount > t2.avg_amount + 2 * t2.std_amount;
+
+-- • Identify customers whose transaction activity has increased or decreased significantly over time.
+
+-- Current activity ≥ 1.5 × Previous
+--         → Significant Increase
+
+-- Current activity ≤ 0.5 × Previous
+--         → Significant Decrease
+
+WITH cte AS
+(
+	SELECT t1.CustomerID, CONCAT_WS(" ", t1.FirstName, t1.LastName) AS customer_name, t3.TransactionID, t3.TransactionDate
+	FROM customers_cleaned AS t1
+	INNER JOIN accounts AS t2
+		ON t1.CustomerID = t2.CustomerID
+	INNER JOIN transactions AS t3
+		ON t2.AccountID = t3.AccountOriginID
+	UNION
+	SELECT t1.CustomerID, CONCAT_WS(" ", t1.FirstName, t1.LastName) AS customer_name, t3.TransactionID, t3.TransactionDate
+	FROM customers_cleaned AS t1
+	INNER JOIN accounts AS t2
+		ON t1.CustomerID = t2.CustomerID
+	INNER JOIN transactions AS t3
+		ON t2.AccountID = t3.AccountDestinationID
+),
+
+cte2 AS 
+(
+	SELECT CustomerID, customer_name, CONCAT_WS(" ",MONTHNAME(TransactionDate) , YEAR(TransactionDate)) AS month_name, 
+		YEAR(TransactionDate) AS years, MONTH(TransactionDate) AS months,
+		COUNT(TransactionID) AS curr_month_activity_cnt
+	FROM cte
+    WHERE TransactionDate IS NOT NULL
+	GROUP BY CustomerID, customer_name, month_name, years, months
+),
+
+cte3 AS
+(
+    SELECT CustomerID, customer_name, month_name, years, months, curr_month_activity_cnt,
+           LAG(curr_month_activity_cnt) OVER ( PARTITION BY CustomerID ORDER BY years ASC, months ASC) AS prev_month_activity_cnt
+    FROM cte2
+)
+
+SELECT *,
+       (curr_month_activity_cnt - prev_month_activity_cnt) AS changes,
+       ROUND(
+           ((curr_month_activity_cnt - prev_month_activity_cnt)
+           / NULLIF(prev_month_activity_cnt, 0)) * 100,
+           2
+       ) AS change_percentage,
+       CASE
+           WHEN curr_month_activity_cnt >= 1.5 * prev_month_activity_cnt
+               THEN 'Significant Increase'
+           WHEN curr_month_activity_cnt <= 0.5 * prev_month_activity_cnt
+               THEN 'Significant Decrease'
+       END AS activity_change
+FROM cte3
+WHERE prev_month_activity_cnt IS NOT NULL
+  AND (
+       curr_month_activity_cnt >= 1.5 * prev_month_activity_cnt
+       OR curr_month_activity_cnt <= 0.5 * prev_month_activity_cnt
+  )
+ORDER BY CustomerID, years, months;
