@@ -52,3 +52,36 @@ INNER JOIN branches AS t2
 	ON t1.BranchID = t2.BranchID
 GROUP BY t2.BranchName
 ORDER BY trans_counts DESC LIMIT 1;
+
+-- • Which branches have the highest transaction activity?
+
+SELECT t2.BranchName AS branch, COUNT(t1.TransactionID) AS trans_counts
+FROM transactions AS t1 
+INNER JOIN branches AS t2
+	ON t1.BranchID = t2.BranchID
+GROUP BY t2.BranchName
+ORDER BY trans_counts DESC LIMIT 1;
+
+-- • Which customers perform the highest number of transactions?
+
+WITH cte AS
+(
+	SELECT t1.CustomerID, CONCAT_WS(" ", t1.FirstName, t1.LastName) AS customer_name, t3.TransactionID
+	FROM customers_cleaned AS t1
+	INNER JOIN accounts AS t2
+		ON t1.CustomerID = t2.CustomerID
+	INNER JOIN transactions AS t3
+		ON t2.AccountID = t3.AccountOriginID
+	UNION
+	SELECT t1.CustomerID, CONCAT_WS(" ", t1.FirstName, t1.LastName) AS customer_name, t3.TransactionID
+	FROM customers_cleaned AS t1
+	INNER JOIN accounts AS t2
+		ON t1.CustomerID = t2.CustomerID
+	INNER JOIN transactions AS t3
+		ON t2.AccountID = t3.AccountDestinationID
+)
+
+SELECT CustomerID, customer_name, COUNT(TransactionID) AS trans_counts
+FROM cte
+GROUP BY CustomerID, customer_name
+ORDER BY trans_counts DESC LIMIT 1;
