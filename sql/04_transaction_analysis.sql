@@ -235,4 +235,4 @@ WHERE prev_month_activity_cnt IS NOT NULL
        curr_month_activity_cnt >= 1.5 * prev_month_activity_cnt
        OR curr_month_activity_cnt <= 0.5 * prev_month_activity_cnt
   )
-ORDER BY CustomerID, years, months;
+ORDER BY CustomerID ASC ,years ASC ,months ASC;
