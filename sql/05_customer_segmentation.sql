@@ -73,3 +73,36 @@ FROM cte3 AS t1
 INNER JOIN cte6 AS t2
 	ON t1.CustomerID = t2.CustomerID AND t1.customer_name = t2.customer_name
 ORDER BY total_balance DESC, trans_counts DESC;
+
+-- • High-Frequency Customers
+-- Customers performing transactions frequently.
+
+WITH cte AS
+(
+	SELECT t1.CustomerID, CONCAT_WS(" ", t1.FirstName, t1.LastName) AS customer_name, t3.TransactionID
+	FROM customers_cleaned AS t1
+	INNER JOIN accounts AS t2
+		ON t1.CustomerID = t2.CustomerID
+	INNER JOIN transactions AS t3
+		ON t2.AccountID = t3.AccountOriginID
+	UNION
+	SELECT t1.CustomerID, CONCAT_WS(" ", t1.FirstName, t1.LastName) AS customer_name, t3.TransactionID
+	FROM customers_cleaned AS t1
+	INNER JOIN accounts AS t2
+		ON t1.CustomerID = t2.CustomerID
+	INNER JOIN transactions AS t3
+		ON t2.AccountID = t3.AccountDestinationID
+),
+
+cte2 AS
+(
+	SELECT CustomerID, customer_name, COUNT(TransactionID) AS trans_counts,
+		ROUND((COUNT(*) OVER() * 0.2)) AS top_20_percent,
+        DENSE_RANK() OVER(ORDER BY COUNT(TransactionID) DESC) AS rnk
+	FROM cte
+	GROUP BY CustomerID, customer_name
+)
+
+SELECT CustomerID, customer_name, trans_counts
+FROM cte2
+WHERE rnk <= top_20_percent;
