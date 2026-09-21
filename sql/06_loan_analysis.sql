@@ -58,3 +58,13 @@ FROM loans AS t1
 INNER JOIN loan_statuses AS t2
     ON t1.LoanStatusID = t2.LoanStatusID
 GROUP BY t2.StatusName;
+
+-- • Loan distribution by loan status
+
+SELECT 
+    t2.StatusName AS loan_status,
+    COUNT(*) AS loan_counts
+FROM loans AS t1
+INNER JOIN loan_statuses AS t2
+    ON t1.LoanStatusID = t2.LoanStatusID
+GROUP BY t2.StatusName;
