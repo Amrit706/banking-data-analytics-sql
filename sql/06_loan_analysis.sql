@@ -48,3 +48,13 @@ FROM loans AS t1
 INNER JOIN loan_statuses AS t2
     ON t1.LoanStatusID = t2.LoanStatusID
 GROUP BY t2.StatusName;
+
+-- • Average loan amount
+
+SELECT 
+    t2.StatusName AS loan_status,
+    ROUND(AVG(t1.PrincipalAmount), 2) AS avg_loan_amount
+FROM loans AS t1
+INNER JOIN loan_statuses AS t2
+    ON t1.LoanStatusID = t2.LoanStatusID
+GROUP BY t2.StatusName;
