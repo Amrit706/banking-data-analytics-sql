@@ -68,3 +68,20 @@ FROM loans AS t1
 INNER JOIN loan_statuses AS t2
     ON t1.LoanStatusID = t2.LoanStatusID
 GROUP BY t2.StatusName;
+
+-- • Loan distribution by branch
+
+SELECT 
+    COALESCE(t5.BranchName, 'Unmapped') AS branch,
+    t2.StatusName AS loan_status,
+    COUNT(DISTINCT t1.LoanID) AS loan_counts
+FROM loans AS t1
+INNER JOIN loan_statuses AS t2
+    ON t1.LoanStatusID = t2.LoanStatusID
+LEFT JOIN accounts AS t3
+    ON t1.AccountID = t3.AccountID
+LEFT JOIN customers_cleaned AS t4
+    ON t3.CustomerID = t4.CustomerID
+LEFT JOIN branches AS t5
+    ON t4.AddressID = t5.AddressID
+GROUP BY branch, loan_status;
