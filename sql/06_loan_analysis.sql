@@ -309,3 +309,73 @@ INNER JOIN accounts AS t2
     ON t1.CustomerID = t2.CustomerID
 INNER JOIN loans AS t3
     ON t2.AccountID = t3.AccountID;
+    
+-- • Relationship between customer account balance and loan amount
+
+WITH cte AS
+(
+	SELECT t1.CustomerID, CONCAT_WS(" ",t1.FirstName, t1.LastName) AS customer_name, ROUND(SUM(t2.Balance),2) AS total_account_balance
+	FROM customers_cleaned AS t1
+	INNER JOIN accounts AS t2
+	ON t1.CustomerID = t2.CustomerID
+	GROUP BY CustomerID, customer_name
+),
+
+cte2 AS
+(
+	SELECT t1.CustomerID, CONCAT_WS(" ", t1.FirstName, t1.LastName) AS customer_name, 
+		ROUND(SUM(t3.PrincipalAmount),2) AS total_loan_amount
+	FROM customers_cleaned AS t1
+	INNER JOIN accounts AS t2
+		ON t1.CustomerID = t2.CustomerID
+	INNER JOIN loans AS t3
+		ON t2.AccountID = t3.AccountID
+	GROUP BY t1.CustomerID, customer_name
+),
+
+cte3 AS
+(
+	SELECT t1.CustomerID, t1.total_account_balance, t2.total_loan_amount
+	FROM cte AS t1
+	JOIN cte2 AS t2
+		ON t1.CustomerID = t2.CustomerID
+)
+
+SELECT t1.CustomerID, t1.total_account_balance, t2.total_loan_amount
+FROM cte AS t1
+JOIN cte2 AS t2
+	ON t1.CustomerID = t2.CustomerID;
+
+-- Loan-to-balance ratio
+WITH cte AS
+(
+	SELECT t1.CustomerID, CONCAT_WS(" ",t1.FirstName, t1.LastName) AS customer_name, ROUND(SUM(t2.Balance),2) AS total_account_balance
+	FROM customers_cleaned AS t1
+	INNER JOIN accounts AS t2
+	ON t1.CustomerID = t2.CustomerID
+	GROUP BY CustomerID, customer_name
+),
+
+cte2 AS
+(
+	SELECT t1.CustomerID, CONCAT_WS(" ", t1.FirstName, t1.LastName) AS customer_name, 
+		ROUND(SUM(t3.PrincipalAmount),2) AS total_loan_amount
+	FROM customers_cleaned AS t1
+	INNER JOIN accounts AS t2
+		ON t1.CustomerID = t2.CustomerID
+	INNER JOIN loans AS t3
+		ON t2.AccountID = t3.AccountID
+	GROUP BY t1.CustomerID, customer_name
+),
+
+cte3 AS
+(
+	SELECT t1.CustomerID, t1.total_account_balance, t2.total_loan_amount
+	FROM cte AS t1
+	JOIN cte2 AS t2
+		ON t1.CustomerID = t2.CustomerID
+)
+
+SELECT CustomerID, ROUND((total_loan_amount / total_account_balance),3) AS loan_to_amount_ratio
+FROM cte3
+ORDER BY loan_to_amount_ratio;
