@@ -85,3 +85,15 @@ LEFT JOIN customers_cleaned AS t4
 LEFT JOIN branches AS t5
     ON t4.AddressID = t5.AddressID
 GROUP BY branch, loan_status;
+
+-- • Customers with multiple loans
+
+SELECT t1.CustomerID, CONCAT_WS(" ", t1.FirstName, t1.LastName) AS customer_name, COUNT(DISTINCT t3.LoanID) AS loan_counts
+FROM customers_cleaned AS t1
+INNER JOIN accounts AS t2
+	ON t1.CustomerID = t2.CustomerID
+INNER JOIN loans AS t3
+	ON t2.AccountID = t3.AccountID
+GROUP BY t1.CustomerID, customer_name
+HAVING loan_counts > 1
+ORDER BY loan_counts DESC;
