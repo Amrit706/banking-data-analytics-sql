@@ -379,3 +379,51 @@ cte3 AS
 SELECT CustomerID, ROUND((total_loan_amount / total_account_balance),3) AS loan_to_amount_ratio
 FROM cte3
 ORDER BY loan_to_amount_ratio;
+
+-- • Loan status patterns across loan amounts
+
+WITH cte AS
+(
+	SELECT 
+		t1.LoanID,
+		t1.PrincipalAmount,
+		t2.StatusName AS loan_status,
+		NTILE(3) OVER (ORDER BY t1.PrincipalAmount) AS loan_group
+	FROM loans AS t1
+	INNER JOIN loan_statuses AS t2
+		ON t1.LoanStatusID = t2.LoanStatusID
+),
+
+cte2 AS
+(
+	SELECT 
+		LoanID,
+		PrincipalAmount,
+		loan_status,
+		CASE
+			WHEN loan_group = 1 THEN 'Low Loan Amount'
+			WHEN loan_group = 2 THEN 'Medium Loan Amount'
+			WHEN loan_group = 3 THEN 'High Loan Amount'
+		END AS loan_amount_segment
+	FROM cte
+)
+
+SELECT
+	loan_amount_segment,
+	loan_status,
+	COUNT(DISTINCT LoanID) AS loan_count,
+	ROUND(
+		COUNT(DISTINCT LoanID) * 100.0 /
+		SUM(COUNT(DISTINCT LoanID)) OVER
+			(PARTITION BY loan_amount_segment),
+		2
+	) AS status_percentage
+FROM cte2
+GROUP BY loan_amount_segment, loan_status
+ORDER BY
+	CASE
+		WHEN loan_amount_segment = 'Low Loan Amount' THEN 1
+		WHEN loan_amount_segment = 'Medium Loan Amount' THEN 2
+		WHEN loan_amount_segment = 'High Loan Amount' THEN 3
+	END,
+	loan_status;
