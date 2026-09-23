@@ -97,3 +97,15 @@ INNER JOIN loans AS t3
 GROUP BY t1.CustomerID, customer_name
 HAVING loan_counts > 1
 ORDER BY loan_counts DESC;
+
+-- • Customers with the highest total loan amounts
+
+SELECT t1.CustomerID, CONCAT_WS(" ", t1.FirstName, t1.LastName) AS customer_name, 
+	ROUND(SUM(t3.PrincipalAmount),2) AS total_loan_amount
+FROM customers_cleaned AS t1
+INNER JOIN accounts AS t2
+	ON t1.CustomerID = t2.CustomerID
+INNER JOIN loans AS t3
+	ON t2.AccountID = t3.AccountID
+GROUP BY t1.CustomerID, customer_name
+ORDER BY total_loan_amount DESC LIMIT 1;
