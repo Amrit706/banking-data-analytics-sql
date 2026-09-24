@@ -158,3 +158,20 @@ CROSS JOIN branch_average AS t2
 WHERE t1.customer_counts > t2.avg_customers
   AND t1.transaction_volume < t2.avg_transactions
 ORDER BY t1.customer_counts DESC;
+
+-- 5. Branches with the largest loan portfolios
+
+SELECT
+	COALESCE(t5.BranchName, 'Unmapped') AS branch,
+	COUNT(DISTINCT t1.LoanID) AS loan_counts,
+	ROUND(SUM(t1.PrincipalAmount), 2) AS loan_portfolio
+FROM loans AS t1
+INNER JOIN accounts AS t2
+	ON t1.AccountID = t2.AccountID
+INNER JOIN customers_cleaned AS t3
+	ON t2.CustomerID = t3.CustomerID
+LEFT JOIN branches AS t5
+	ON t3.AddressID = t5.AddressID
+GROUP BY
+	COALESCE(t5.BranchName, 'Unmapped')
+ORDER BY loan_portfolio DESC;
