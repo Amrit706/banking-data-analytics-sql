@@ -106,3 +106,55 @@ SELECT
 	(balance_rank + transaction_rank) AS combined_rank
 FROM branch_ranking
 ORDER BY combined_rank;
+
+-- 4. Branches with high customer count but low transaction activity
+
+WITH branch_customers AS
+(
+	SELECT 
+		CAST(t2.BranchID AS CHAR) AS branch,
+		COUNT(DISTINCT t1.CustomerID) AS customer_counts
+	FROM customers_cleaned AS t1
+	INNER JOIN branches AS t2
+		ON t1.AddressID = t2.AddressID
+	GROUP BY t2.BranchID
+),
+
+branch_transactions AS
+(
+	SELECT
+		CAST(BranchID AS CHAR) AS branch,
+		COUNT(TransactionID) AS transaction_volume
+	FROM transactions
+	WHERE BranchID IS NOT NULL
+	GROUP BY BranchID
+),
+
+branch_metrics AS
+(
+	SELECT
+		t1.branch,
+		t1.customer_counts,
+		COALESCE(t2.transaction_volume, 0) AS transaction_volume
+	FROM branch_customers AS t1
+	LEFT JOIN branch_transactions AS t2
+		ON t1.branch = t2.branch
+),
+
+branch_average AS
+(
+	SELECT
+		AVG(customer_counts) AS avg_customers,
+		AVG(transaction_volume) AS avg_transactions
+	FROM branch_metrics
+)
+
+SELECT
+	t1.branch,
+	t1.customer_counts,
+	t1.transaction_volume
+FROM branch_metrics AS t1
+CROSS JOIN branch_average AS t2
+WHERE t1.customer_counts > t2.avg_customers
+  AND t1.transaction_volume < t2.avg_transactions
+ORDER BY t1.customer_counts DESC;
