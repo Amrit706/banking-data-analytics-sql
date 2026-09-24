@@ -40,3 +40,17 @@ SELECT
 FROM customer_branch_balance
 GROUP BY branch
 ORDER BY branch;
+
+-- 2. Branch transaction performance
+-- • Transaction volume
+-- • Transaction value
+-- • Average transaction value
+
+SELECT 
+    BranchID AS branch,
+    COUNT(TransactionID) AS transaction_volume,
+    ROUND(SUM(Amount), 2) AS transaction_value,
+    ROUND(AVG(Amount), 2) AS average_transaction_value
+FROM transactions
+GROUP BY BranchID
+ORDER BY transaction_value DESC;
