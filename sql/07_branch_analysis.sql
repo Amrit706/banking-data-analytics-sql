@@ -175,3 +175,31 @@ LEFT JOIN branches AS t5
 GROUP BY
 	COALESCE(t5.BranchName, 'Unmapped')
 ORDER BY loan_portfolio DESC;
+
+-- 6. Branches with unusually high transaction values
+
+WITH branch_transactions AS
+(
+	SELECT
+		BranchID AS branch,
+		ROUND(SUM(TransactionAmount), 2) AS transaction_value
+	FROM transactions
+	WHERE BranchID IS NOT NULL
+	GROUP BY BranchID
+),
+
+branch_average AS
+(
+	SELECT
+		AVG(transaction_value) AS avg_branch_transaction_value
+	FROM branch_transactions
+)
+
+SELECT
+	t1.branch,
+	t1.transaction_value,
+	ROUND(t2.avg_branch_transaction_value, 2) AS average_branch_value
+FROM branch_transactions AS t1
+CROSS JOIN branch_average AS t2
+WHERE t1.transaction_value > t2.avg_branch_transaction_value
+ORDER BY t1.transaction_value DESC;
