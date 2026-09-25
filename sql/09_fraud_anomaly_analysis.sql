@@ -76,3 +76,70 @@ FROM cte2
 WHERE previous_transaction_date IS NOT NULL
 	AND TIMESTAMPDIFF(MINUTE, previous_transaction_date, TransactionDate) <= 5
 ORDER BY minutes_difference ASC, AccountID, TransactionDate;
+
+-- =================================================
+-- 3. Customers with sudden increases in transaction value
+-- =================================================
+-- Identify customers whose transaction value increased
+-- by at least 100% compared with their previous observed month.
+
+WITH cte AS
+(
+	SELECT t1.CustomerID,
+		t3.TransactionID,
+		t3.Amount,
+		t3.TransactionDate
+	FROM customers_cleaned AS t1
+	INNER JOIN accounts AS t2
+		ON t1.CustomerID = t2.CustomerID
+	INNER JOIN transactions AS t3
+		ON t2.AccountID = t3.AccountOriginID
+	WHERE t3.TransactionDate IS NOT NULL
+		AND t3.Amount IS NOT NULL
+
+	UNION
+
+	SELECT t1.CustomerID,
+		t3.TransactionID,
+		t3.Amount,
+		t3.TransactionDate
+	FROM customers_cleaned AS t1
+	INNER JOIN accounts AS t2
+		ON t1.CustomerID = t2.CustomerID
+	INNER JOIN transactions AS t3
+		ON t2.AccountID = t3.AccountDestinationID
+	WHERE t3.TransactionDate IS NOT NULL
+		AND t3.Amount IS NOT NULL
+),
+
+cte2 AS
+(
+	SELECT CustomerID,
+		YEAR(TransactionDate) AS years,
+		MONTH(TransactionDate) AS months,
+		SUM(Amount) AS monthly_transaction_value
+	FROM cte
+	GROUP BY CustomerID, YEAR(TransactionDate), MONTH(TransactionDate)
+),
+
+cte3 AS
+(
+	SELECT CustomerID, years, months,
+		monthly_transaction_value,
+		LAG(monthly_transaction_value) OVER(PARTITION BY CustomerID ORDER BY years ASC, months ASC ) AS previous_month_value
+	FROM cte2
+)
+
+SELECT CustomerID,
+	years,
+	months,
+	ROUND(monthly_transaction_value,2) AS current_month_value,
+	ROUND(previous_month_value,2) AS previous_month_value,
+	ROUND(((monthly_transaction_value - previous_month_value)/ NULLIF(previous_month_value,0)) * 100,2) 
+    AS percentage_increase,
+	'Potentially Unusual Increase' AS anomaly_indicator
+FROM cte3
+WHERE previous_month_value IS NOT NULL
+	AND previous_month_value > 0
+	AND monthly_transaction_value >= 2 * previous_month_value
+ORDER BY percentage_increase DESC;
