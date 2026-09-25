@@ -33,3 +33,25 @@ SELECT month_year,
     prev_month,
 	ROUND((((curr_month - prev_month) / curr_month) * 100 ),2) AS MoM_growth_rate
 FROM cte3;
+
+-- • Running transaction total
+
+WITH cte AS
+(
+	SELECT *, CONCAT_WS(" " , MONTHNAME(TransactionDate), YEAR(TransactionDate)) AS month_year,
+		YEAR(TransactionDate) AS years, MONTH(TransactionDate) AS months
+	FROM transactions
+),
+
+cte2 AS 
+(
+	SELECT month_year, years, months, COUNT(TransactionID) AS trans_count
+	FROM cte
+    WHERE years IS NOT NULL AND months IS NOT NULL
+	GROUP BY month_year, years, months
+)
+
+SELECT month_year, trans_count AS monthly_transaction,
+	SUM(trans_count) OVER(ORDER BY years ASC, months ASC 
+		ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS Running_total
+FROM cte2;
