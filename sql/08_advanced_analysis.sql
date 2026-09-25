@@ -82,3 +82,18 @@ SELECT
 			ROWS BETWEEN 2 PRECEDING AND CURRENT ROW),2) AS three_month_moving_average
 FROM cte2
 ORDER BY years ASC, months ASC;
+
+-- • Percentage contribution of each branch to total transaction volume
+
+WITH cte AS
+(
+	SELECT BranchID AS branch, COUNT(TransactionID) AS transaction_volume
+	FROM transactions
+	WHERE BranchID IS NOT NULL
+	GROUP BY BranchID
+)
+
+SELECT branch, transaction_volume,
+	ROUND((transaction_volume / SUM(transaction_volume) OVER()) * 100,2) AS percentage_contribution
+FROM cte
+ORDER BY percentage_contribution DESC;
